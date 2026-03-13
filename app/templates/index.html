@@ -85,7 +85,7 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
-  <script src="/static/js/app.js"></script>
+  <script src="/static/js/app.js?v=2"></script>
   <script>
     // Restore session on page load
     {% if session %}
@@ -96,6 +96,8 @@
       {{ session.summary | tojson if session.summary else 'null' }}
     );
     {% endif %}
+    // Load repos immediately (DOMContentLoaded may have already fired)
+    loadLocalRepos();
   </script>
 </body>
 </html>
