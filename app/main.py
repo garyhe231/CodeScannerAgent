@@ -1,4 +1,5 @@
 """Code Scanner Agent — FastAPI app."""
+import os
 import shutil
 
 from fastapi import FastAPI, Request, Form, HTTPException
@@ -6,12 +7,28 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
+from app.config import MAX_SCAN_CHARS
 from app.services import scanner, analyst, session_store
 
 app = FastAPI(title="Code Scanner Agent")
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 templates = Jinja2Templates(directory="app/templates")
+
+
+@app.get("/repos")
+async def list_repos():
+    """List local git repositories under the home directory."""
+    home = os.path.expanduser("~")
+    repos = []
+    try:
+        for name in sorted(os.listdir(home)):
+            path = os.path.join(home, name)
+            if os.path.isdir(path) and os.path.isdir(os.path.join(path, ".git")):
+                repos.append({"name": name, "path": path})
+    except Exception:
+        pass
+    return JSONResponse({"repos": repos})
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -48,8 +65,8 @@ async def scan(repo_path: str = Form(...)):
         if not files:
             raise HTTPException(status_code=400, detail="No scannable files found.")
 
-        context = scanner.build_context(files, max_chars=120_000)
-        tree = scanner.file_tree(files)
+        context = scanner.build_context(files, max_chars=MAX_SCAN_CHARS)
+        tree = scanner.file_tree(files, max_files=500)
         summary = analyst.summarize_repo(context, tree)
 
         session = session_store.Session(

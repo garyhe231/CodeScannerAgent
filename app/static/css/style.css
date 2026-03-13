@@ -69,6 +69,20 @@ html, body { height: 100%; font-family: var(--font-ui); background: var(--bg); c
 }
 .path-input:focus { border-color: var(--accent); }
 
+.repo-select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238892a4' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 28px;
+  cursor: pointer;
+}
+.repo-select option {
+  background: var(--bg3);
+  color: var(--text);
+}
+
 .tree-section { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
 .file-tree {
   font-family: var(--font);

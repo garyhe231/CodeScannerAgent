@@ -1,5 +1,45 @@
 /* Code Scanner Agent — frontend */
 
+// Load local repos into the dropdown on page load
+async function loadLocalRepos() {
+  try {
+    const res = await fetch('/repos');
+    const data = await res.json();
+    const select = document.getElementById('repoSelect');
+    data.repos.forEach(repo => {
+      const opt = document.createElement('option');
+      opt.value = repo.path;
+      opt.textContent = repo.name;
+      select.appendChild(opt);
+    });
+    // Pre-select if current session matches a known repo
+    const currentPath = document.getElementById('repoPath').value;
+    if (currentPath) {
+      for (const opt of select.options) {
+        if (opt.value === currentPath) { select.value = currentPath; break; }
+      }
+    }
+  } catch (e) {
+    console.warn('Could not load local repos:', e);
+  }
+}
+
+function onRepoSelect() {
+  const select = document.getElementById('repoSelect');
+  if (select.value) {
+    document.getElementById('repoPath').value = select.value;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  loadLocalRepos();
+  document.getElementById('repoPath').addEventListener('input', () => {
+    const select = document.getElementById('repoSelect');
+    const typed = document.getElementById('repoPath').value;
+    if (select.value && select.value !== typed) select.value = '';
+  });
+});
+
 marked.setOptions({
   highlight: function(code, lang) {
     if (lang && hljs.getLanguage(lang)) {
@@ -184,6 +224,7 @@ function escHtml(str) {
 async function clearSession() {
   await fetch('/clear', { method: 'POST' });
   document.getElementById('repoPath').value = '';
+  document.getElementById('repoSelect').value = '';
   document.getElementById('repoLabel').textContent = 'No repository loaded';
   document.getElementById('summaryPanel').style.display = 'none';
   document.getElementById('chatSection').style.display = 'none';
@@ -209,4 +250,10 @@ document.addEventListener('DOMContentLoaded', () => {
       ta.style.height = Math.min(ta.scrollHeight, 120) + 'px';
     });
   }
+  loadLocalRepos();
+  document.getElementById('repoPath').addEventListener('input', () => {
+    const select = document.getElementById('repoSelect');
+    const typed = document.getElementById('repoPath').value;
+    if (select.value && select.value !== typed) select.value = '';
+  });
 });

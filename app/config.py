@@ -2,6 +2,10 @@ import os
 
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 
+# Use Bedrock if no direct API key is set
+USE_BEDROCK = not ANTHROPIC_API_KEY
+MODEL = os.environ.get("ANTHROPIC_DEFAULT_OPUS_MODEL", "claude-opus-4-6")
+
 # File extensions to include when scanning
 SCANNABLE_EXTENSIONS = {
     ".py", ".js", ".ts", ".tsx", ".jsx",
@@ -29,5 +33,3 @@ MAX_FILE_SIZE = 100_000
 # Max total chars sent to Claude per scan summary
 MAX_SCAN_CHARS = 120_000
 
-# Model
-MODEL = "claude-opus-4-6"

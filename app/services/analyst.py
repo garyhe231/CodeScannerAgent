@@ -3,10 +3,13 @@ from typing import List, Dict, Optional
 
 import anthropic
 
-from app.config import ANTHROPIC_API_KEY, MODEL
+from app.config import ANTHROPIC_API_KEY, MODEL, USE_BEDROCK
 
 
-client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+if USE_BEDROCK:
+    client = anthropic.AnthropicBedrock()
+else:
+    client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 
 SYSTEM_PROMPT = """You are an expert software engineer and code analyst.
 You have been given the full source code of a repository.

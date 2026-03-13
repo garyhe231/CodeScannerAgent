@@ -133,6 +133,9 @@ def build_context(files: List[Dict], max_chars: int) -> str:
     return "".join(parts)
 
 
-def file_tree(files: List[Dict]) -> str:
+def file_tree(files: List[Dict], max_files: Optional[int] = None) -> str:
     """Return a simple tree listing of all scanned file paths."""
-    return "\n".join(f["path"] for f in files)
+    paths = [f["path"] for f in files]
+    if max_files and len(paths) > max_files:
+        paths = paths[:max_files] + [f"... and {len(paths) - max_files} more files"]
+    return "\n".join(paths)

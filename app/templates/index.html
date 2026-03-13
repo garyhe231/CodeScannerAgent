@@ -19,7 +19,11 @@
 
       <!-- Scan form -->
       <div class="scan-section">
-        <label class="section-label">Repository Path or GitHub URL</label>
+        <label class="section-label">Local Repositories</label>
+        <select id="repoSelect" class="path-input repo-select" onchange="onRepoSelect()">
+          <option value="">— select a local repo —</option>
+        </select>
+        <label class="section-label" style="margin-top:8px">Or enter path / GitHub URL</label>
         <input id="repoPath" type="text" class="path-input"
                placeholder="https://github.com/owner/repo  or  /local/path"
                value="{{ session.repo_path if session else '' }}">
