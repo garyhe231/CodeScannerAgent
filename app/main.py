@@ -1,4 +1,6 @@
 """Code Scanner Agent — FastAPI app."""
+import shutil
+
 from fastapi import FastAPI, Request, Form, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -23,36 +25,53 @@ async def index(request: Request):
 
 @app.post("/scan")
 async def scan(repo_path: str = Form(...)):
-    """Scan a repository and generate a summary."""
+    """Scan a local path or GitHub URL and generate a summary."""
+    source = repo_path.strip()
+    tmp_dir = None
+    display_label = source  # shown in the UI header
+
     try:
-        files, skipped = scanner.scan_repo(repo_path)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        if scanner.is_github_url(source):
+            try:
+                tmp_dir = scanner.clone_github_repo(source)
+            except ValueError as e:
+                raise HTTPException(status_code=400, detail=str(e))
+            scan_root = tmp_dir
+        else:
+            scan_root = source
 
-    if not files:
-        raise HTTPException(status_code=400, detail="No scannable files found in the given path.")
+        try:
+            files, skipped = scanner.scan_repo(scan_root)
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
 
-    context = scanner.build_context(files, max_chars=120_000)
-    tree = scanner.file_tree(files)
+        if not files:
+            raise HTTPException(status_code=400, detail="No scannable files found.")
 
-    summary = analyst.summarize_repo(context, tree)
+        context = scanner.build_context(files, max_chars=120_000)
+        tree = scanner.file_tree(files)
+        summary = analyst.summarize_repo(context, tree)
 
-    session = session_store.Session(
-        repo_path=repo_path,
-        files=files,
-        repo_context=context,
-        file_tree=tree,
-        summary=summary,
-    )
-    session_store.set_session(session)
+        session = session_store.Session(
+            repo_path=display_label,
+            files=files,
+            repo_context=context,
+            file_tree=tree,
+            summary=summary,
+        )
+        session_store.set_session(session)
 
-    return JSONResponse({
-        "repo_path": repo_path,
-        "file_count": len(files),
-        "skipped_dirs": skipped,
-        "file_tree": tree,
-        "summary": summary,
-    })
+        return JSONResponse({
+            "repo_path": display_label,
+            "file_count": len(files),
+            "skipped_dirs": skipped,
+            "file_tree": tree,
+            "summary": summary,
+        })
+    finally:
+        # Always clean up the temp clone
+        if tmp_dir:
+            shutil.rmtree(tmp_dir, ignore_errors=True)
 
 
 @app.post("/ask")

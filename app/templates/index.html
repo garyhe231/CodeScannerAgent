@@ -19,9 +19,9 @@
 
       <!-- Scan form -->
       <div class="scan-section">
-        <label class="section-label">Repository Path</label>
+        <label class="section-label">Repository Path or GitHub URL</label>
         <input id="repoPath" type="text" class="path-input"
-               placeholder="/path/to/your/repo"
+               placeholder="https://github.com/owner/repo  or  /local/path"
                value="{{ session.repo_path if session else '' }}">
         <button id="scanBtn" class="btn btn-primary" onclick="scanRepo()">
           <span id="scanBtnText">Scan Repository</span>
@@ -73,7 +73,7 @@
       <div id="emptyState" class="empty-state">
         <div class="empty-icon">&#x1F4C2;</div>
         <div class="empty-title">Scan a repository to get started</div>
-        <div class="empty-sub">Enter an absolute path to any local code repository and click Scan.</div>
+        <div class="empty-sub">Enter a GitHub URL (https://github.com/owner/repo) or an absolute local path, then click Scan.</div>
       </div>
 
     </main>

@@ -1,9 +1,55 @@
 """Walks a local directory and collects file contents for analysis."""
 import os
+import re
+import shutil
+import subprocess
+import tempfile
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from app.config import SCANNABLE_EXTENSIONS, SKIP_DIRS, MAX_FILE_SIZE
+
+GITHUB_URL_RE = re.compile(
+    r'^https?://github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+(\.git)?(/.*)?$'
+)
+
+
+def is_github_url(source: str) -> bool:
+    return bool(GITHUB_URL_RE.match(source.strip()))
+
+
+def clone_github_repo(url: str) -> str:
+    """
+    Shallow-clone a GitHub repo into a temp directory.
+    Returns the temp directory path (caller must delete it when done).
+    Raises ValueError on failure.
+    """
+    # Strip trailing slashes / .git / sub-paths — we want the bare repo URL
+    clean_url = url.strip().rstrip('/')
+    if not clean_url.endswith('.git'):
+        # Drop any sub-path (e.g. /tree/main/...) and append .git
+        clean_url = re.sub(r'(github\.com/[^/]+/[^/]+).*', r'\1', clean_url)
+        clean_url += '.git'
+
+    tmp_dir = tempfile.mkdtemp(prefix='codescan_')
+    try:
+        result = subprocess.run(
+            ['git', 'clone', '--depth', '1', '--single-branch', clean_url, tmp_dir],
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+        if result.returncode != 0:
+            shutil.rmtree(tmp_dir, ignore_errors=True)
+            raise ValueError(f"git clone failed: {result.stderr.strip()}")
+    except subprocess.TimeoutExpired:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+        raise ValueError("git clone timed out after 120 seconds.")
+    except FileNotFoundError:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+        raise ValueError("git is not installed or not on PATH.")
+
+    return tmp_dir
 
 
 def _should_include(path: Path) -> bool:
