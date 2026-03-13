@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Code Scanner Agent</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+</head>
+<body>
+  <div class="app">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="logo">&#x1F50D; Code Scanner</div>
+        <div class="subtitle">AI-powered repo analyst</div>
+      </div>
+
+      <!-- Scan form -->
+      <div class="scan-section">
+        <label class="section-label">Repository Path</label>
+        <input id="repoPath" type="text" class="path-input"
+               placeholder="/path/to/your/repo"
+               value="{{ session.repo_path if session else '' }}">
+        <button id="scanBtn" class="btn btn-primary" onclick="scanRepo()">
+          <span id="scanBtnText">Scan Repository</span>
+        </button>
+      </div>
+
+      <!-- File tree -->
+      <div class="tree-section" id="treeSection" style="display:none">
+        <div class="section-label">
+          Files scanned: <span id="fileCount">0</span>
+        </div>
+        <div id="fileTree" class="file-tree"></div>
+      </div>
+
+      <!-- Clear -->
+      <div class="sidebar-footer">
+        <button class="btn btn-ghost" onclick="clearSession()">Clear Session</button>
+      </div>
+    </aside>
+
+    <!-- Main content -->
+    <main class="main">
+
+      <!-- Header -->
+      <header class="main-header">
+        <div id="repoLabel" class="repo-label">No repository loaded</div>
+        <div id="statusBadge" class="badge badge-idle">Idle</div>
+      </header>
+
+      <!-- Summary panel -->
+      <section id="summaryPanel" class="panel" style="display:none">
+        <div class="panel-title">Repository Summary</div>
+        <div id="summaryContent" class="markdown-body"></div>
+      </section>
+
+      <!-- Chat -->
+      <section class="chat-section" id="chatSection" style="display:none">
+        <div class="panel-title">Ask About the Code</div>
+        <div id="chatMessages" class="chat-messages"></div>
+        <div class="chat-input-row">
+          <textarea id="questionInput" class="chat-input" rows="2"
+                    placeholder="Ask about a function, config, data flow, etc..."
+                    onkeydown="handleKey(event)"></textarea>
+          <button class="btn btn-primary send-btn" onclick="askQuestion()">Send</button>
+        </div>
+      </section>
+
+      <!-- Empty state -->
+      <div id="emptyState" class="empty-state">
+        <div class="empty-icon">&#x1F4C2;</div>
+        <div class="empty-title">Scan a repository to get started</div>
+        <div class="empty-sub">Enter an absolute path to any local code repository and click Scan.</div>
+      </div>
+
+    </main>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+  <script src="/static/js/app.js"></script>
+  <script>
+    // Restore session on page load
+    {% if session %}
+    restoreSession(
+      {{ session.files | length }},
+      {{ session.file_tree | tojson }},
+      {{ session.repo_path | tojson }},
+      {{ session.summary | tojson if session.summary else 'null' }}
+    );
+    {% endif %}
+  </script>
+</body>
+</html>
