@@ -62,8 +62,9 @@ def answer_question(
     repo_context: str,
     file_tree: str,
     history: List[Dict],
+    attachments: Optional[List[Dict]] = None,
 ) -> str:
-    """Answer a specific question about the codebase, with conversation history."""
+    """Answer a specific question about the codebase, with optional file attachments."""
     messages = []
 
     # Inject the code context as the first user turn (only once)
@@ -95,8 +96,39 @@ I will now ask you questions about this codebase.""",
     for turn in history:
         messages.append(turn)
 
-    # Append the new question
-    messages.append({"role": "user", "content": question})
+    # Build the new user message, including any file attachments
+    user_content: List = []
+
+    # Add text attachments as text blocks
+    if attachments:
+        for att in attachments:
+            if att.get("type") == "image" and att.get("image_data"):
+                user_content.append({
+                    "type": "image",
+                    "source": {
+                        "type": "base64",
+                        "media_type": att["media_type"],
+                        "data": att["image_data"],
+                    },
+                })
+                user_content.append({
+                    "type": "text",
+                    "text": f"[Image uploaded: {att['filename']}]",
+                })
+            elif att.get("type") == "text" and att.get("content"):
+                user_content.append({
+                    "type": "text",
+                    "text": f"[Attached file: {att['filename']}]\n\n{att['content']}",
+                })
+            elif att.get("error"):
+                user_content.append({
+                    "type": "text",
+                    "text": f"[File {att['filename']} could not be read: {att['error']}]",
+                })
+
+    user_content.append({"type": "text", "text": question})
+
+    messages.append({"role": "user", "content": user_content})
 
     response = client.messages.create(
         model=MODEL,

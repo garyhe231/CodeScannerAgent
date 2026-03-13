@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Code Scanner Agent</title>
-  <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="stylesheet" href="/static/css/style.css?v=3">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
 </head>
 <body>
@@ -65,9 +65,15 @@
       <section class="chat-section" id="chatSection" style="display:none">
         <div class="panel-title">Ask About the Code</div>
         <div id="chatMessages" class="chat-messages"></div>
+        <div id="attachmentBar" class="attachment-bar" style="display:none"></div>
         <div class="chat-input-row">
+          <label class="attach-btn" title="Attach files">
+            <input type="file" id="fileInput" multiple style="display:none"
+                   onchange="handleFileAttach(event)">
+            &#128206;
+          </label>
           <textarea id="questionInput" class="chat-input" rows="2"
-                    placeholder="Ask about a function, config, data flow, etc..."
+                    placeholder="Ask about a function, config, data flow, etc... (attach files with 📎)"
                     onkeydown="handleKey(event)"></textarea>
           <button class="btn btn-primary send-btn" onclick="askQuestion()">Send</button>
         </div>
@@ -85,7 +91,7 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
-  <script src="/static/js/app.js?v=2"></script>
+  <script src="/static/js/app.js?v=3"></script>
   <script>
     // Restore session on page load
     {% if session %}

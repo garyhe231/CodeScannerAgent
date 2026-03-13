@@ -130,21 +130,90 @@ function restoreSession(fileCount, fileTree, repoPath, summary) {
   setStatus('ready');
 }
 
+// Attachment state: array of processed file objects from /upload
+let pendingAttachments = [];
+
+async function handleFileAttach(event) {
+  const files = Array.from(event.target.files);
+  if (!files.length) return;
+
+  const bar = document.getElementById('attachmentBar');
+  bar.style.display = 'flex';
+
+  for (const file of files) {
+    // Show uploading chip
+    const chipId = 'chip-' + Date.now() + '-' + Math.random().toString(36).slice(2);
+    const chip = document.createElement('div');
+    chip.className = 'attach-chip loading';
+    chip.id = chipId;
+    chip.innerHTML = `<span class="spinner"></span> ${escHtml(file.name)}`;
+    bar.appendChild(chip);
+
+    try {
+      const fd = new FormData();
+      fd.append('files', file);
+      const res = await fetch('/upload', { method: 'POST', body: fd });
+      const data = await res.json();
+      const result = data.files[0];
+
+      chip.classList.remove('loading');
+      if (result.error) {
+        chip.classList.add('error');
+        chip.innerHTML = `&#10060; ${escHtml(file.name)} <span class="chip-remove" onclick="removeAttachment('${chipId}')">&#10005;</span>`;
+      } else {
+        chip.classList.add('ready');
+        const icon = result.type === 'image' ? '&#128444;' : '&#128196;';
+        chip.innerHTML = `${icon} ${escHtml(file.name)} <span class="chip-remove" onclick="removeAttachment('${chipId}')">&#10005;</span>`;
+        pendingAttachments.push({ chipId, ...result });
+      }
+    } catch (e) {
+      chip.classList.remove('loading');
+      chip.classList.add('error');
+      chip.innerHTML = `&#10060; ${escHtml(file.name)} <span class="chip-remove" onclick="removeAttachment('${chipId}')">&#10005;</span>`;
+    }
+  }
+  // Reset file input so same file can be re-attached
+  event.target.value = '';
+}
+
+function removeAttachment(chipId) {
+  pendingAttachments = pendingAttachments.filter(a => a.chipId !== chipId);
+  const chip = document.getElementById(chipId);
+  if (chip) chip.remove();
+  if (!pendingAttachments.length) {
+    const bar = document.getElementById('attachmentBar');
+    if (!bar.children.length) bar.style.display = 'none';
+  }
+}
+
 async function askQuestion() {
   const input = document.getElementById('questionInput');
   const question = input.value.trim();
-  if (!question) return;
+  if (!question && !pendingAttachments.length) return;
+
+  const attachments = [...pendingAttachments];
+  pendingAttachments = [];
+  document.getElementById('attachmentBar').innerHTML = '';
+  document.getElementById('attachmentBar').style.display = 'none';
 
   input.value = '';
   input.style.height = 'auto';
 
-  appendUserMsg(question);
+  appendUserMsg(question, attachments);
   const thinking = appendThinking();
   setStatus('asking');
 
   try {
     const fd = new FormData();
-    fd.append('question', question);
+    fd.append('question', question || '(see attached files)');
+    fd.append('attachments', JSON.stringify(attachments.map(a => ({
+      filename: a.filename,
+      type: a.type,
+      content: a.content || null,
+      image_data: a.image_data || null,
+      media_type: a.media_type || null,
+      error: a.error || null,
+    }))));
     const res = await fetch('/ask', { method: 'POST', body: fd });
     const data = await res.json();
 
@@ -164,11 +233,21 @@ async function askQuestion() {
   }
 }
 
-function appendUserMsg(text) {
+function appendUserMsg(text, attachments) {
   const el = document.createElement('div');
   el.className = 'msg msg-user';
+  let attachHtml = '';
+  if (attachments && attachments.length) {
+    attachHtml = '<div class="msg-attachments">' +
+      attachments.map(a => {
+        const icon = a.type === 'image' ? '&#128444;' : '&#128196;';
+        return `<span class="msg-attach-chip">${icon} ${escHtml(a.filename)}</span>`;
+      }).join('') +
+      '</div>';
+  }
   el.innerHTML = `
     <div class="msg-label">You</div>
+    ${attachHtml}
     <div class="msg-bubble">${escHtml(text)}</div>
   `;
   getChatMessages().appendChild(el);
